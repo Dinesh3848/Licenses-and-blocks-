@@ -1,0 +1,43 @@
+fetch license#!/usr/bin/env bash
+set -euo pipefail
+
+# Simple dispatcher for quick actions
+# Usage:
+#   ./fetch license [--features feature1,feature2] [--format table|json] [--out <html>] [--csv <csv>]
+# Env vars:
+#   FEATURES            Comma-separated list (default: Innovus_Impl_System,Genus_Synthesis)
+#   LICENSE_CHECK_CMD   Command template (e.g., "lmutil lmstat -f {feature} -c 27000@server")
+#   DOTENV              Optional path to .env file (default: "$REPO_ROOT/.env")
+
+# Resolve repo root to the directory of this script for portability
+REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+# Load .env if present
+ENV_FILE="${DOTENV:-$REPO_ROOT/.env}"
+if [[ -f "$ENV_FILE" ]]; then
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+fi
+
+CMD="${1:-}"
+shift || true
+
+case "$CMD" in
+  license)
+    FEATURES_VAL="${FEATURES:-Innovus_Impl_System,Genus_Synthesis}"
+    # Default outputs in repo root so frontend can read them
+    OUT_HTML="$REPO_ROOT/license_usage.html"
+    OUT_CSV="$REPO_ROOT/license_usage.csv"
+
+    # Allow overrides via CLI flags that follow "license"
+    python3 "$REPO_ROOT/new_task_project/fetch_license.py" \
+      --features "${FEATURES_VAL}" \
+      --out "${OUT_HTML}" \
+      --csv "${OUT_CSV}" \
+      "$@"
+    ;;
+  *)
+    echo "Usage: ./fetch license [--features feature1,feature2] [--format table|json|summary] [--out html] [--csv csv]" >&2
+    exit 2
+    ;;
+esac
